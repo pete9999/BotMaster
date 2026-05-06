@@ -2861,7 +2861,7 @@ def spawn_worker(worker_id: str) -> dict[str, Any]:
         model = w.get("model") or _get_config("lmstudio_default_model") or ""
         # LM Studio uses OpenAI-compatible endpoint; model name must match what's loaded in LM Studio
         _lm_model = f"openai/{model}" if model else "openai/local-model"
-        launch_cmd = f'& "{aider_path}" --model {_lm_model} --openai-api-base {lm_base} --yes-always --no-git'
+        launch_cmd = f'& "{aider_path}" --model {_lm_model} --openai-api-base {lm_base} --yes-always --no-git --no-show-model-warnings'
         steps.append(f"Runner: LM Studio via aider, model={model or '(loaded model)'}")
     else:
         # custom — model field holds the full command
@@ -3043,6 +3043,10 @@ def spawn_worker(worker_id: str) -> dict[str, Any]:
                 msg_path = logs_dir / f"{safe_sid}-{run_ts}.msg"
                 msg_path.write_text(msg_content, encoding="utf-8")
                 msg_flag = f" --message-file '{msg_path}'"
+                # Aider-based runners (ollama/aider/lmstudio) stay in interactive loop
+                # after processing --message-file unless we close their stdin.
+                # Piping $null closes stdin immediately so aider exits after the message.
+                stdin_prefix = "$null | " if runner in ("ollama", "aider", "lmstudio") else ""
                 ps_script = (
                     f"$ErrorActionPreference = 'Continue'\n"
                     f"{encoding_setup}"
@@ -3051,7 +3055,7 @@ def spawn_worker(worker_id: str) -> dict[str, Any]:
                     f"Get-Content '{banner_path}' -Encoding UTF8\n"
                     f"$_exitCode = 0\n"
                     f"try {{\n"
-                    f"    {launch_cmd}{msg_flag} 2>&1 | Tee-Object -FilePath '{transcript_path}' -Append\n"
+                    f"    {stdin_prefix}{launch_cmd}{msg_flag} 2>&1 | Tee-Object -FilePath '{transcript_path}' -Append\n"
                     f"    $_exitCode = $LASTEXITCODE\n"
                     f"}} catch {{ $_exitCode = 1 }}\n"
                     f"$_exitCode | Out-File -FilePath '{done_path}' -Encoding utf8\n"
