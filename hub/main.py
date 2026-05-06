@@ -363,6 +363,8 @@ def _seed_config(c: sqlite3.Connection) -> None:
         ("aider_cli_path",        "aider",                      "Path to aider CLI binary"),
         ("ollama_url",            "http://localhost:11434",      "Ollama API base URL"),
         ("ollama_default_model",  "qwen3-coder:latest",          "Default Ollama model name"),
+        ("lmstudio_api_base",     "http://localhost:1234/v1",    "LM Studio OpenAI-compatible API base URL"),
+        ("lmstudio_default_model","",                            "Default LM Studio model name (copy from LM Studio model name exactly)"),
         # Governor / triage
         ("google_api_key",        "",    "Google Gemini API key (used by governor triage)"),
         ("ntfy_topic",            "",    "ntfy.sh topic for push alerts (leave blank to disable)"),
@@ -2853,6 +2855,14 @@ def spawn_worker(worker_id: str) -> dict[str, Any]:
         _aider_base = f'& "{aider_path}" --yes-always --no-git'
         launch_cmd = f'{_aider_base} --model {model}' if model else _aider_base
         steps.append(f"Runner: Aider{', model=' + model if model else ''}")
+    elif runner == "lmstudio":
+        aider_path = _get_config("aider_cli_path") or "aider"
+        lm_base = _get_config("lmstudio_api_base") or "http://localhost:1234/v1"
+        model = w.get("model") or _get_config("lmstudio_default_model") or ""
+        # LM Studio uses OpenAI-compatible endpoint; model name must match what's loaded in LM Studio
+        _lm_model = f"openai/{model}" if model else "openai/local-model"
+        launch_cmd = f'& "{aider_path}" --model {_lm_model} --openai-api-base {lm_base} --yes-always --no-git'
+        steps.append(f"Runner: LM Studio via aider, model={model or '(loaded model)'}")
     else:
         # custom — model field holds the full command
         launch_cmd = w.get("model") or _get_config("claude_cli_path") or "claude"
@@ -2883,7 +2893,7 @@ def spawn_worker(worker_id: str) -> dict[str, Any]:
     # Non-interactive runners (aider/ollama): add --no-pretty so output is plain text
     # that can be piped + captured. Interactive runners (claude_code) keep the raw terminal.
     is_interactive = runner == "claude_code"
-    if runner in ("ollama", "aider") and "--no-pretty" not in launch_cmd:
+    if runner in ("ollama", "aider", "lmstudio") and "--no-pretty" not in launch_cmd:
         launch_cmd = launch_cmd.replace("--yes-always", "--yes-always --no-pretty", 1)
 
     spawned = False
@@ -2891,7 +2901,12 @@ def spawn_worker(worker_id: str) -> dict[str, Any]:
         if platform.system() == "Windows":
             # Write PS commands to a .ps1 file to avoid `wt` splitting on semicolons.
             ollama_base = _get_config("ollama_api_base") or "http://localhost:11434"
-            env_setup = f"$env:OLLAMA_API_BASE = '{ollama_base}'\n" if runner in ("ollama", "aider") else ""
+            if runner in ("ollama", "aider"):
+                env_setup = f"$env:OLLAMA_API_BASE = '{ollama_base}'\n"
+            elif runner == "lmstudio":
+                env_setup = "$env:OPENAI_API_KEY = 'lmstudio'\n"
+            else:
+                env_setup = ""
 
             # Compute the actual prompt that will be sent before building the banner,
             # so the banner can show the real content (including fallback for mission-level bots).

@@ -582,12 +582,12 @@ function ReviewModal({ task, worker, missionId, projectPath, onClose, onLaunch }
           <div>
             <label className="text-xs font-semibold text-gray-600 block mb-1">Runner</label>
             <div className="flex gap-2">
-              {(['claude_code', 'ollama'] as const).map(r => (
-                <button key={r} onClick={() => { setRunner(r); setModel(r === 'ollama' ? 'qwen3-coder:latest' : 'claude-sonnet-4-6') }}
+              {(['claude_code', 'ollama', 'lmstudio'] as const).map(r => (
+                <button key={r} onClick={() => { setRunner(r); setModel(runnerDefaultModel(r)) }}
                   className={`flex-1 px-3 py-2 text-xs rounded-lg border font-medium transition-colors ${
                     runner === r ? 'bg-yellow-400 border-yellow-400 text-gray-900' : 'border-gray-200 text-gray-600 hover:border-gray-300'
                   }`}>
-                  {r === 'claude_code' ? 'Claude Code' : 'Ollama (local)'}
+                  {r === 'claude_code' ? 'Claude Code' : r === 'ollama' ? 'Ollama (local)' : 'LM Studio'}
                 </button>
               ))}
             </div>
@@ -645,12 +645,13 @@ const TASK_FOLDER_MODES: { id: TaskFolderMode; icon: React.ReactNode; label: str
   { id: 'clone',    icon: <Copy size={12} />,         label: 'Clone',          hint: 'Copy an existing folder to a new location for this objective' },
 ]
 
-type RunnerType = 'claude_code' | 'codex' | 'ollama' | 'aider' | 'custom'
+type RunnerType = 'claude_code' | 'codex' | 'ollama' | 'aider' | 'lmstudio' | 'custom'
 
 const RUNNER_OPTIONS: { key: RunnerType; label: string; icon: React.ReactNode; desc: string }[] = [
   { key: 'claude_code', label: 'Claude Code', icon: <Sparkles size={13} />, desc: 'Official Anthropic CLI' },
   { key: 'codex',       label: 'Codex CLI',   icon: <Terminal size={13} />, desc: 'OpenAI Codex CLI' },
   { key: 'ollama',      label: 'Ollama',      icon: <Cpu size={13} />,      desc: 'Free — local models' },
+  { key: 'lmstudio',    label: 'LM Studio',   icon: <Cpu size={13} />,      desc: 'Local via LM Studio' },
   { key: 'aider',       label: 'Aider',       icon: <Bot size={13} />,      desc: 'AI pair programmer' },
   { key: 'custom',      label: 'Custom',      icon: <Edit2 size={13} />,    desc: 'Any CLI command' },
 ]
@@ -659,8 +660,9 @@ function runnerLabel(r?: string) {
   return RUNNER_OPTIONS.find(o => o.key === r)?.label ?? 'Claude Code'
 }
 function runnerDefaultModel(r?: string): string {
-  if (r === 'codex')  return 'gpt-4o'
-  if (r === 'ollama') return 'qwen3-coder:latest'
+  if (r === 'codex')    return 'gpt-4o'
+  if (r === 'ollama')   return 'qwen3-coder:latest'
+  if (r === 'lmstudio') return ''
   return 'claude-sonnet-4-6'
 }
 
