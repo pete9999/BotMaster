@@ -3506,6 +3506,20 @@ def system_status() -> dict[str, Any]:
     }
 
 
+@app.get("/api/lmstudio/models")
+def lmstudio_models():
+    """Return list of models currently loaded in LM Studio."""
+    base = (_get_config("lmstudio_api_base") or "http://localhost:1234/v1").rstrip("/")
+    try:
+        req = urllib.request.Request(f"{base}/models", headers={"Authorization": "Bearer lmstudio"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read())
+        models = [m["id"] for m in data.get("data", [])]
+        return {"models": models}
+    except Exception as e:
+        return JSONResponse(status_code=503, content={"error": str(e), "models": []})
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # WATCHDOG (background task)
 # ═══════════════════════════════════════════════════════════════════════════════

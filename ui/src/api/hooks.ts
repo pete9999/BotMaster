@@ -242,6 +242,16 @@ export const useUpdateConfig = () => {
 export const useSysStatus = () =>
   useQuery({ queryKey: ['status'], queryFn: () => get<SysStatus>('/api/status'), refetchInterval: 10000 })
 
+// ── LM Studio models ──────────────────────────────────────────────────────────
+export const useLMStudioModels = (enabled = true) =>
+  useQuery({
+    queryKey: ['lmstudio-models'],
+    queryFn: () => get<{ models: string[] }>('/api/lmstudio/models'),
+    enabled,
+    staleTime: 30_000,
+    retry: false,
+  })
+
 // ── Bot Events ────────────────────────────────────────────────────────────────
 export const useBotEvents = (params?: { worker_id?: string; task_id?: string; project_id?: string; mission_id?: string; model?: string; limit?: number }) => {
   const qs = new URLSearchParams()

@@ -22,7 +22,7 @@ import {
   useMissionQuestions, useStartMissionBot, useReplyToQuestion,
   useKillWorker, useBotEvents, useReviewMissionPlan, useMissionReport,
   useObjectiveTemplates, useSaveTaskAsTemplate, useRecordTemplateUse, useAuditLog,
-  useWorkerTranscript,
+  useWorkerTranscript, useLMStudioModels,
 } from '../api/hooks'
 import StatusBadge from '../components/StatusBadge'
 import LogViewer from '../components/LogViewer'
@@ -594,9 +594,12 @@ function ReviewModal({ task, worker, missionId, projectPath, onClose, onLaunch }
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-600 block mb-1">Model</label>
-            <input value={model} onChange={e => setModel(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-yellow-400"
-              placeholder="Model name" />
+            {runner === 'lmstudio'
+              ? <LMStudioModelPicker value={model} onChange={setModel} compact />
+              : <input value={model} onChange={e => setModel(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-yellow-400"
+                  placeholder="Model name" />
+            }
           </div>
         </div>
         <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
@@ -664,6 +667,34 @@ function runnerDefaultModel(r?: string): string {
   if (r === 'ollama')   return 'qwen3-coder:latest'
   if (r === 'lmstudio') return ''
   return 'claude-sonnet-4-6'
+}
+
+// ── LM Studio model picker ────────────────────────────────────────────────────
+
+function LMStudioModelPicker({ value, onChange, compact }: { value: string; onChange: (v: string) => void; compact?: boolean }) {
+  const { data, isFetching, isError, refetch } = useLMStudioModels()
+  const models = data?.models ?? []
+  const cls = compact
+    ? 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-yellow-400'
+    : 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-yellow-400'
+
+  if (isFetching) return <p className="text-xs text-gray-400 py-2">Fetching models from LM Studio…</p>
+  if (isError || models.length === 0) return (
+    <div className="space-y-1.5">
+      <p className="text-xs text-amber-600">{isError ? 'LM Studio not reachable on localhost:1234' : 'No models loaded in LM Studio'} — <button type="button" onClick={() => refetch()} className="underline">retry</button></p>
+      <input value={value} onChange={e => onChange(e.target.value)} placeholder="Type model name manually"
+        className={cls} />
+    </div>
+  )
+  return (
+    <div className="space-y-1.5">
+      <select value={value} onChange={e => onChange(e.target.value)} className={cls}>
+        <option value="">— pick a model —</option>
+        {models.map(m => <option key={m} value={m}>{m}</option>)}
+      </select>
+      <button type="button" onClick={() => refetch()} className="text-xs text-gray-400 hover:text-gray-600">↻ Refresh list</button>
+    </div>
+  )
 }
 
 // ── Task Modal ────────────────────────────────────────────────────────────────
@@ -823,6 +854,9 @@ function TaskModal({ projectId, missionId, projectPath, existingTasks, editTask,
                   placeholder="or type any Ollama model name"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono bg-white focus:outline-none focus:ring-2 focus:ring-yellow-400" />
               </div>
+            )}
+            {form.runner_type === 'lmstudio' && (
+              <LMStudioModelPicker value={form.model_hint} onChange={v => set('model_hint', v)} />
             )}
             {(form.runner_type === 'aider' || form.runner_type === 'custom') && (
               <div>
