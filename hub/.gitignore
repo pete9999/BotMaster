@@ -1,0 +1,9 @@
+.aider*
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+factory.db
+logs/
+ui_dist/
+*.ps1.bak

@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+aider-env/
+
+# Hub runtime artifacts
+hub/factory.db
+hub/logs/
+hub/*.log
+
+# Node / UI
+ui/node_modules/
+ui/dist/
+ui/.vite/
+
+# Aider
+.aider*
+
+# Bot project output folders (never commit generated project code here)
+Projects/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

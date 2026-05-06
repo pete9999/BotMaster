@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; }
+#root { display: flex; height: 100vh; overflow: hidden; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+/* Log colours */
+.log-debug { color: #94a3b8; }
+.log-info  { color: #e2e8f0; }
+.log-warn  { color: #fbbf24; }
+.log-error { color: #f87171; }
